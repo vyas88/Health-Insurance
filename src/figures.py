@@ -106,9 +106,9 @@ def qda_regions(result, tier):
     explained = np.asarray(result["pca"]["proportion_variance"])
     ax.set_xlabel(f"PC1 ({explained[0]:.1%})")
     ax.set_ylabel(f"PC2 ({explained[1]:.1%})")
-    ax.set_title("Illustrative QDA regions in two PCs")
+    ax.set_title("Illustrative QDA decision regions using PC1 and PC2")
     ax.legend(title="Tier", frameon=False)
-    fig.text(0.5, 0.01, "Illustrative only: QDA is trained on two PCs here; the reported model uses all eight features.", ha="center", fontsize=9)
+    fig.text(0.5, 0.01, "Illustrative only: this view uses PC1 and PC2; the reported classifier uses all eight standardized features.", ha="center", fontsize=9)
     save(fig, "qda_regions.png")
 
 
