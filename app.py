@@ -311,11 +311,11 @@ def pca_tab(results):
     st.write("PCA summarizes broad patterns in the variables into new combined directions called principal components.")
     st.metric("Key finding", f"{components_needed} components are needed to retain at least 90% of variation")
     st.write("The predictors have limited redundancy, so PCA provides limited dimensional compression in this dataset.")
-    st.image(figure_path("pca_scree.png"), caption="Scree plot showing the variation explained by each component.", use_container_width=True)
-    st.image(figure_path("pca_biplot.png"), caption="PCA biplot by observed risk tier.", use_container_width=True)
+    st.image(figure_path("pca_scree.png"), caption="Scree plot showing the variation explained by each component.", use_column_width=True)
+    st.image(figure_path("pca_biplot.png"), caption="PCA biplot by observed risk tier.", use_column_width=True)
     st.subheader("How strongly are the variables related?")
     st.write("Most feature pairs have weak linear relationships, which helps explain why PCA does not compress the dataset dramatically.")
-    st.image(figure_path("feature_correlation.png"), caption="Correlation heatmap for the standardized model features.", use_container_width=True)
+    st.image(figure_path("feature_correlation.png"), caption="Correlation heatmap for the standardized model features.", use_column_width=True)
     loading_table = pd.DataFrame({
         "Feature": pca["features"],
         "PC1 loading": [row[0] for row in pca["loadings"]],
@@ -348,7 +348,7 @@ def classification_tab(results):
     confusion.columns.name = "Predicted risk group"
     st.dataframe(confusion, use_container_width=True)
     st.write("Low and Medium groups are classified relatively well. Some High-risk observations overlap with the Medium group.")
-    st.image(figure_path("qda_regions.png"), caption="Illustrative QDA decision regions using PC1 and PC2. The reported classifier uses all eight standardized features.", use_container_width=True)
+    st.image(figure_path("qda_regions.png"), caption="Illustrative QDA decision regions using PC1 and PC2. The reported classifier uses all eight standardized features.", use_column_width=True)
     technical_detail([
         ("Selected model", classification["method"]),
         ("Overall cross-validation accuracy", f"{classification['overall_accuracy']:.1%}"),
@@ -388,7 +388,7 @@ def mahalanobis_tab(results):
     st.subheader("How typical are the historical profiles?")
     st.metric("Profiles outside the reference range", f"{details['count']} of {results['data']['n']}")
     st.write("Mahalanobis distance measures how typical a combined continuous profile is within its own risk group while accounting for relationships among the variables.")
-    st.image(figure_path("mahalanobis_hist.png"), caption="Within-tier squared Mahalanobis distances in the historical dataset.", use_container_width=True)
+    st.image(figure_path("mahalanobis_hist.png"), caption="Within-tier squared Mahalanobis distances in the historical dataset.", use_column_width=True)
     technical_detail([
         ("Reference cutoff", f"{details['threshold']:.2f}"),
         ("Flagged profiles", details["count"]),
