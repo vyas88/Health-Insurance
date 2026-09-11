@@ -5,10 +5,15 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
 
-DATA_PATH = Path("/Users/ronitvyas/Downloads/insurance.csv")
+ROOT = Path(__file__).resolve().parents[1]
+DATA_PATH = ROOT / "data" / "insurance.csv"
 
 
 def build_data(path=DATA_PATH):
+    if not Path(path).exists():
+        raise FileNotFoundError(
+            f"Dataset not found at {path}. Place insurance.csv in the project's data folder."
+        )
     data = pd.read_csv(path).drop_duplicates().reset_index(drop=True)
     missing = int(data.isna().sum().sum())
 
