@@ -17,22 +17,21 @@ DEFAULT_MODEL = "gpt-5.6-luna"
 LOGGER = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """
-You are the interpretation assistant for a university-built multivariate health-insurance risk-profiling application. A separate Python statistical model has already calculated every supplied result. Treat those results as authoritative and only interpret them.
-
-Never recalculate or change the risk tier, probabilities, cost range, or statistical conclusions. Never invent statistics, causal explanations, medical diagnoses, future illness or claim predictions, a premium, or an underwriting decision. The reader has no statistics background.
-
-Write strictly about 100 to 150 words in concise plain English, using one short sentence under each heading. Use the supplied probabilities only as "model support for the classification", never as probabilities of illness, claims, health, or future costs. Describe typicality without requiring the reader to understand Mahalanobis distance. The observed annual medical-cost range is historical dataset context, not a premium quote or guaranteed future cost.
-
-Return exactly these Markdown headings in this order. Write one short sentence under each heading and do not omit any heading:
+Explain only the supplied Python-computed facts in 120-180 words of plain English.
+Never recalculate, override or invent the class, support, costs or metrics. Similarity
+is not causality. Do not diagnose illness, predict future claims or expenditure,
+recommend premiums or applicant acceptance/rejection, or imply underwriting readiness.
+Support is the supplied uniform fraction or normalized distance-weighted vote, not
+calibrated confidence. Even 100% support is not proof of correctness. Historical group
+summaries are not personalized intervals. Mention uncertain individual outcomes.
+Use exactly these headings, with concise prose under each:
 ### Your result
-### What this means
-### How strong is the model's support?
-### Profile check
+### What the similar profiles show
+### How to read the model support
 ### Business perspective
-### Cost context
-### Bottom line
-
-In Business perspective, use cautious insurance language such as may, could, or could warrant. Do not recommend a price or approve or reject an applicant. End by noting that the assessment is based on historical data and is not medical advice or an insurance quote. Do not include equations, p-values, degrees of freedom, PCA, LDA, QDA, covariance, or other technical jargon unless specifically asked.
+### Cost context and limitations
+Business perspective may discuss exploratory historical portfolio analysis or further
+review only. Avoid equations, statistical jargon and p-values. Do not use em dashes.
 """.strip()
 
 
@@ -51,32 +50,27 @@ def get_ai_settings():
 
 
 def build_ai_context(profile, assessment, results):
-    """Create the small, case-specific contract sent to the interpretation layer."""
-    classification = results["classification"]
-    box_m = results["box_m"]
     return {
-        "applicant_profile": profile,
-        "risk_result": {
-            "risk_tier": assessment["tier"],
-            "class_probabilities": assessment["probabilities"],
-            "classifier": classification["method"],
-            "observed_cost_range": assessment["cost_range"],
-            "mahalanobis_distance": round(assessment["distance"], 2),
-            "mahalanobis_cutoff": round(assessment["cutoff"], 2),
-            "profile_status": assessment["status"],
-        },
-        "model_context": {
-            "cv_accuracy": classification["overall_accuracy"],
-            "lda_accuracy": classification["comparison"]["lda_cv_mean"],
-            "qda_accuracy": classification["comparison"]["qda_cv_mean"],
-            "box_m_p_value": box_m["p_value"],
-            "key_findings": [
-                "The classifier uses all eight standardized features.",
-                "The observed medical-cost range is not an insurance premium quote.",
-                "Mardia diagnostics do not support exact multivariate normality for the continuous variables.",
-            ],
-        },
+        "submitted_profile": profile,
+        "run_id": results["run_id"],
+        "predicted_observed_cost_group": assessment["tier"],
+        "neighbour_support": assessment["support"],
+        "voting": assessment["weights"],
+        "k": assessment["k"],
+        "distance_metric": assessment["metric"],
+        "neighbour_counts": assessment["neighbour_counts"],
+        "outside_training_range": assessment["outside_training_range"],
+        "frozen_thresholds": results["thresholds"],
+        "boundary_rule": results["boundary_rule"],
+        "historical_development_group_summary": results["historical_development_costs"][assessment["tier"]],
+        "held_out_test_metrics": results["models"]["k-NN"]["test"],
+        "limitations": "Previously explored historical sample; held out during this refactor, not external validation. Missing clinical and utilization information; individual outcomes uncertain. No causal or future-cost interpretation."
     }
+
+
+def explanation_key(context, model):
+    import hashlib
+    return hashlib.sha256(json.dumps([context, model], sort_keys=True).encode()).hexdigest()
 
 
 def create_client(api_key):
@@ -85,7 +79,7 @@ def create_client(api_key):
         from openai import OpenAI
     except ImportError as error:
         raise AIInterpretationError("The optional OpenAI package is not installed.") from error
-    return OpenAI(api_key=api_key)
+    return OpenAI(api_key=api_key, timeout=20.0, max_retries=1)
 
 
 def generate_ai_interpretation(client, model, context):
@@ -95,11 +89,11 @@ def generate_ai_interpretation(client, model, context):
             model=model,
             instructions=SYSTEM_PROMPT,
             input=json.dumps(context, indent=2),
-            max_output_tokens=360,
+            max_output_tokens=650,
             reasoning={"effort": "none"},
             store=False,
         )
-        if not response.output_text:
+        if getattr(response, "status", None) != "completed" or not response.output_text or not response.output_text.strip():
             error = getattr(response, "error", None)
             incomplete = getattr(response, "incomplete_details", None)
             LOGGER.warning(

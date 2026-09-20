@@ -1,82 +1,50 @@
-# Multivariate Health Insurance Risk Profiling
+# Multivariate Classification of Health-Insurance Medical-Cost Groups
 
-This repository contains an MSc Computational Statistics and Applied AI project for a Multivariate Techniques course. It examines health-insurance-style medical-cost records and groups applicants into Low, Medium, and High observed medical-cost tiers.
+How accurately can demographic and lifestyle characteristics classify individuals into Low, Medium and High observed medical-cost groups, and where does classification fail?
 
-The application is an analytical demonstration, not an actuarial pricing system. It reports historical medical-cost ranges from the dataset and does not provide an insurance quote, medical advice, or an underwriting decision.
+This university project uses k-nearest neighbours as its primary Unit 4 multivariate technique, with fixed LDA and regularized QDA benchmarks. It classifies observed medical charges from six jointly considered variables. It is not actuarial pricing, medical assessment, causal inference or a validated forecast of future costs.
 
-## Problem
+## Data and design
 
-Insurance-related risk profiles are multivariate: age, BMI, number of children, sex, smoking status, and region are considered together rather than one at a time. The project uses these characteristics to identify the historical cost group that most closely matches an applicant profile.
+Download [Medical Cost Personal Datasets by Miri Choi](https://www.kaggle.com/datasets/mirichoi0218/insurance) to `data/insurance.csv`. The CSV is local and uncommitted. There are 1,338 source records, 1,337 after one exact duplicate is removed, and no missing values in this supplied version. Matching records do not prove duplicated people.
 
-## Dataset
+A single random 80/20 split (seed 42) produces 1,069 development and 268 test records. Only development charges define the tercile thresholds. Numerical preprocessing and category encoding fit inside each development CV training fold. k-NN uses 11 encoded dimensions; LDA/QDA use eight with reference-category encoding. Charges never enter predictors. The test set was held out during this refactor, not independent external validation of a previously unexplored dataset.
 
-The analysis uses the [Medical Cost Personal Datasets](https://www.kaggle.com/datasets/mirichoi0218/insurance) dataset published on Kaggle by Miri Choi. The source data contains 1,338 records and the variables `age`, `sex`, `bmi`, `children`, `smoker`, `region`, and `charges`.
+## Run locally
 
-After duplicate removal, the analysis uses 1,337 observations. The `charges` variable is split into terciles to form Low, Medium, and High observed medical-cost groups.
-
-The CSV is not committed to this repository. To reproduce the pipeline, download `insurance.csv` from the source and place it at `data/insurance.csv`.
-
-## Methods
-
-The project applies the following multivariate techniques:
-
-- preprocessing, encoding, and standardisation
-- Mardia's multivariate normality diagnostics
-- Box's M test for covariance homogeneity
-- PCA for dimensional structure and visualisation
-- LDA and QDA comparison using five-fold cross-validation
-- Hotelling's T² test for the High and Low group mean profiles
-- MANOVA using Wilks' Lambda for group differences
-- Mahalanobis distance for profile typicality
-
-QDA is the reported classifier because Box's M indicates that covariance patterns differ across the risk groups. The reported classifier uses all eight standardised features. PCA is used separately to understand the data structure and to provide illustrative plots.
-
-## Key results
-
-- QDA was selected after the equal-covariance assumption was not supported.
-- LDA and QDA achieved similar cross-validation accuracy, at about 84%.
-- Mardia's diagnostics did not support exact multivariate normality.
-- PC1 explains about 19% of the variation and seven components are needed to retain at least 90%, so PCA offers limited compression for this dataset.
-- Hotelling's T² and MANOVA both provide strong evidence that the observed risk groups differ in their combined profiles.
-
-The Streamlit app presents these results alongside an interactive risk assessment. An optional OpenAI explanation feature interprets the Python-generated result in plain language. It never calculates or changes the risk tier, probabilities, statistical tests, or cost range.
-
-## Project structure
-
-```text
-.
-├── app.py                  Streamlit application
-├── data/                   Local dataset location
-├── models/                 Saved classifier artefact
-├── outputs/                Precomputed results and figures
-├── src/                    Statistical pipeline and supporting modules
-├── requirements.txt        Python dependencies
-└── runtime.txt             Deployment Python version
-```
-
-## Running the project
-
-The deployed app uses the saved model, results, and figures. To regenerate the analysis locally, place the source CSV in `data/insurance.csv`.
+Use Python 3.11.11 and the pinned, verified dependencies. From the repository root:
 
 ```bash
-pip install -r requirements.txt
-python src/main.py
-python src/figures.py
-streamlit run app.py
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m src.main
+python -m src.flowchart
+python -m unittest discover -s tests -v
+python -m streamlit run app.py
 ```
 
-The AI explanation is optional. For local use, create one root `.env` file:
+`python -m src.main` generates the development-only model, structured results, held-out predictions and two evaluation figures. `python -m src.figures` regenerates those figures from saved predictions without refitting. The app never trains on opening. Missing or incompatible artifacts produce a rebuild instruction.
 
-```text
-OPENAI_API_KEY=your_api_key_here
-OPENAI_MODEL=gpt-5.6-luna
-```
+## Optional AI interpretation
 
-The `.env` file is ignored by Git and must never be committed.
+Copy `.env.example` to `.env` and set `OPENAI_API_KEY`; retain or configure `OPENAI_MODEL`. The existing default is preserved. Equivalent Streamlit secrets are supported. Neither `.env` nor `.streamlit/secrets.toml` should be committed. AI is called only after clicking the explanation button. No key, API failure or incomplete response prevents use of the Python results. Tests mock AI and incur no live requests. AI text can contain errors and cannot replace the authoritative Python cards.
 
-## References
+## Files
 
-1. Choi, M. (n.d.). *Medical Cost Personal Datasets*. Kaggle. https://www.kaggle.com/datasets/mirichoi0218/insurance
-2. Mardia, K. V. (1970). Measures of multivariate skewness and kurtosis with applications. *Biometrika, 57*(3), 519-530.
-3. Box, G. E. P. (1949). A general distribution theory for a class of likelihood criteria. *Biometrika, 36*(3/4), 317-346.
-4. Anderson, T. W. (2003). *An Introduction to Multivariate Statistical Analysis* (3rd ed.). Wiley.
+- `app.py`: navy/white assessment, model explanation, results and methodology pages.
+- `src/data.py`, `src/classify.py`, `src/main.py`: validation, fold-fitted selection and frozen evaluation.
+- `src/inference.py`: artifact checks and exact neighbour explanations.
+- `src/ai_interpretation.py`: optional compact explanation contract.
+- `outputs/results.json`, `outputs/evaluation_predictions.csv`: full reproducibility and error audit.
+- `models/model.joblib`: versioned development-only pipeline and reference rows.
+- `src/figures.py`, `src/flowchart.py`: figure and flowchart sources.
+- `METHODOLOGY.md`: equations, pseudo-algorithm, conditions, actual results and limitations.
+- `SUBMISSION_CHECKLIST.md`: provisional rubric evidence map and user-owned pending items.
+- `legacy/`: previous methodology and preserved local edits, separate from revised evidence.
+
+The rubric PDF was unavailable. Acceptance of existing Streamlit hosting in place of the named Antigravity/GitHub Codespace requirement needs clarification. Public URLs, Developer Pack/tool-use evidence, two LinkedIn posts, a captioned video, three endorsements and a personal reflection with a real peer citation remain user-owned evidence.
+
+## Actual revised results
+
+See [generated results and error analysis](outputs/RESULTS.md) for the current run, selected parameters, exact cutoffs, benchmark table, High errors and k sensitivity. This file is regenerated from results.json by the analysis entry point.

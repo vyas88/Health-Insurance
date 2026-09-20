@@ -1,0 +1,10 @@
+{
+  "scope": "Legacy classifier only; full-dataset labels/scaling are leaky and not revised validation evidence",
+  "rows": 1337,
+  "smokers": 274,
+  "smokers_in_high": 274,
+  "high_non_smokers": 172,
+  "high_non_smokers_recovered": 0,
+  "predicted_high_equals_smoker": true,
+  "warnings": []
+}

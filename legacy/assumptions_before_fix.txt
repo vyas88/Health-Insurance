@@ -1,4 +1,3 @@
-"""Legacy diagnostics only; not used by the classification workflow."""
 import numpy as np
 from scipy.stats import chi2, norm
 
@@ -47,16 +46,20 @@ def mardia_test(C):
         "skewness": float(skewness),
         "skewness_chi2": float(skew_stat),
         "skewness_df": float(skew_df),
-        # Skewness p-value:
-        # p > 0.05 -> no strong evidence against multivariate normality.
-        # p < 0.05 -> significant skewness; normality assumption is violated.
+        '''
+        Skewness p-value:
+        p > 0.05 -> no strong evidence against multivariate normality.
+        p < 0.05 -> significant skewness; normality assumption is violated.
+        '''
         "skewness_p_value": float(chi2.sf(skew_stat, skew_df)),
 
         "kurtosis": float(kurtosis),
         "kurtosis_z": float(kurt_z),
-        # Kurtosis p-value:
-        # p > 0.05 -> kurtosis is consistent with multivariate normality.
-        # p < 0.05 -> significant kurtosis deviation from normality.
+        '''
+        Kurtosis p-value:
+        p > 0.05 -> kurtosis is consistent with multivariate normality.
+        p < 0.05 -> significant kurtosis deviation from normality.
+        '''
         "kurtosis_p_value": float(2 * norm.sf(abs(kurt_z))),
     }
 

@@ -1,4 +1,3 @@
-"""Legacy exploratory helper only; unused by the revised classifier and app."""
 import numpy as np
 from sklearn.decomposition import PCA
 
