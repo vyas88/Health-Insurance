@@ -2,6 +2,9 @@
 import numpy as np
 from scipy.stats import chi2, norm
 
+# Historical normality diagnostic only. The active k-NN pipeline does not
+# require it. It assumes a usable nonsingular covariance matrix; arbitrary
+# constant/duplicated columns can make the inverse fail.
 def mardia_test(C):
     '''
     Mardia's test checks whether multiple continuous variables
@@ -21,6 +24,9 @@ def mardia_test(C):
     Calculate the covariance matrix and its inverse.
     This captures how the variables vary and move together.
     '''
+    # This n-by-n matrix includes cross-products between different centered rows.
+    # Its diagonal contains squared Mahalanobis distances; off-diagonal entries
+    # also contribute to the multivariate skewness calculation.
     distances = centered @ inv_cov @ centered.T
     '''
     Calculate Mahalanobis-based distances.
@@ -43,6 +49,10 @@ def mardia_test(C):
     Compare observed kurtosis with the expected value under
     multivariate normality, which is p(p+2), and convert it to a Z-score.
     '''
+    # Use real # comments inside dictionaries. A standalone quoted explanation
+    # immediately before a quoted key can concatenate into that key in Python,
+    # which was the historical defect checked by the regression test.
+    # A large p-value is lack of evidence against normality, not proof of it.
     return {
         "skewness": float(skewness),
         "skewness_chi2": float(skew_stat),
@@ -60,6 +70,9 @@ def mardia_test(C):
         "kurtosis_p_value": float(2 * norm.sf(abs(kurt_z))),
     }
 
+# Legacy comparison of within-group covariance matrices. This test is not
+# used to choose the revised classifier and is sensitive to distributional
+# assumptions. Every group needs enough observations and usable covariance.
 def box_m(C, tier):
     '''Box's M test checks whether the covariance matrices of the groups are equal.
     H0: Covariance matrices are equal across groups.
@@ -81,6 +94,9 @@ def box_m(C, tier):
     '''Calculate the total number of observations across all groups.'''
     pooled = sum((count - 1) * cov for count, cov in zip(counts, covs)) / (total - len(groups))
     '''Create the pooled covariance matrix, representing the combined covariance structure of all groups.'''
+    # slogdet computes sign and log absolute determinant more stably than
+    # computing a potentially huge/tiny determinant first. This legacy code uses
+    # the log value only and assumes valid positive-definite covariance inputs.
     logdet_pooled = np.linalg.slogdet(pooled)[1]
     '''Calculate the log determinant of the pooled covariance matrix.'''
     logdets = np.array([np.linalg.slogdet(cov)[1] for cov in covs])
@@ -94,6 +110,9 @@ def box_m(C, tier):
     '''Calculate a correction factor so Box's M can be approximated using a chi-square distribution.'''
     statistic = (1 - correction) * m
     '''Apply the correction to obtain the chi-square-style test statistic.'''
+    # There are p(p+1)/2 distinct covariance entries per group. Comparing group
+    # matrices gives (groups-1) times that count as the approximation's degrees
+    # of freedom. A nonsignificant result does not establish equal covariances.
     df = (len(groups) - 1) * p * (p + 1) / 2
     '''Calculate the degrees of freedom based on the number of groups and variables.'''
     '''Interpretation:

@@ -11,9 +11,14 @@ from sklearn.model_selection import train_test_split
 from .data import ROOT, FEATURES, NUMERIC, CATEGORIES, CLASSES, build_data, label_costs
 from .classify import fit_models, evaluate, SEED
 
+# Increment when the saved artifact contract changes. A run ID identifies a
+# particular analysis; the schema version identifies the structure it follows.
 SCHEMA_VERSION = 2
 
 
+# JSON cannot directly serialize many NumPy/Pandas types. Recursively convert
+# arrays, scalars and nested containers into ordinary Python JSON-compatible
+# values while keeping numerical precision in the saved results.
 def json_ready(value):
     if isinstance(value, (np.ndarray, pd.Series)):
         return value.tolist()
@@ -26,17 +31,33 @@ def json_ready(value):
     return value
 
 
+# Offline orchestration entry point: clean, split, freeze labels, select on
+# development, evaluate on test, and write mutually traceable artifacts.
+# Streamlit imports inference helpers instead of calling this training routine.
 def main():
     data, audit = build_data()
+    # Split raw cleaned rows before computing terciles. No full-data target
+    # stratification is used, avoiding information from test charges in the split.
     dev, test = train_test_split(data, test_size=0.2, random_state=SEED)
+    # A stable source-row ordering also makes equal-distance neighbour behaviour
+    # reproducible within the pinned implementation. Sorting does not change
+    # which records train_test_split assigned to each partition.
     dev = dev.sort_values('source_row').reset_index(drop=True)
     test = test.sort_values('source_row').reset_index(drop=True)
+    # Pandas computes linearly interpolated one-third and two-thirds quantiles
+    # using DEVELOPMENT charges only. The exact floats define the fixed CV task.
     thresholds = dev.charges.quantile([1/3, 2/3]).tolist()
     dev['tier'] = label_costs(dev.charges, thresholds)
     test['tier'] = label_costs(test.charges, thresholds)
     if set(test.tier) != set(CLASSES):
         raise ValueError('Test class missing. Report limitation before choosing another evaluation design.')
+    # Explicit FEATURES selection prevents charges, labels and source-row IDs
+    # from becoming predictors. Tuning and final fitting use development only.
     models, reports, folds = fit_models(dev[FEATURES], dev.tier.to_numpy())
+    # Record package versions because serialized scikit-learn objects depend on
+    # the environment. Hash data, source bytes and configuration into a run ID.
+    # Comment-only source edits change a future run ID, even if predictions do not;
+    # existing artifacts remain the record of the original generation run.
     versions = {p: importlib.metadata.version(p) for p in ['scikit-learn', 'numpy', 'scipy', 'pandas', 'joblib', 'matplotlib', 'streamlit', 'openai', 'python-dotenv']}
     source_hash = hashlib.sha256(b''.join((ROOT / 'src' / p).read_bytes() for p in ['data.py', 'classify.py', 'main.py'])).hexdigest()
     run_id = hashlib.sha256(json.dumps([audit['data_sha256'], versions, source_hash, SCHEMA_VERSION], sort_keys=True).encode()).hexdigest()[:16]
@@ -44,6 +65,10 @@ def main():
     benchmark_matrix = models['QDA'].named_steps['preprocess'].transform(dev[FEATURES])
     conditioning = {}
     for label in CLASSES:
+        # Inspect covariance rank separately from fitting QDA. Rank below eight
+        # means some encoded directions carry no independent within-class variation.
+        # The condition number of the regularized matrix describes numerical
+        # sensitivity, not proof that Gaussian modelling assumptions are satisfied.
         covariance = np.cov(benchmark_matrix[dev.tier == label], rowvar=False)
         regularized = .999 * covariance + .001 * np.eye(covariance.shape[0])
         conditioning[label] = {'raw_rank': int(np.linalg.matrix_rank(covariance)), 'dimensions': 8,
@@ -51,17 +76,26 @@ def main():
     reports['QDA']['development_conditioning'] = conditioning
     if any(value['raw_rank'] < 8 for value in conditioning.values()):
         reports['QDA']['warnings'].append('Development class covariance has deficient rank before regularization; class-constant indicators limit Gaussian interpretation.')
+    # Retain source identities and observed labels for independent error audits.
+    # Charge and smoker columns here are evaluation metadata, not input features.
     predictions = test[['source_row', 'charges', 'smoker', 'tier']].copy()
+    # Each already-fitted model makes one set of holdout predictions. All final
+    # metrics and plots are subsequently derived from these saved predictions.
     for name, model in models.items():
         pred = model.predict(test[FEATURES])
         predictions[name] = pred
         reports[name]['test'] = evaluate(test.tier, pred, test.smoker)
         reports[name]['split_sizes'] = {'development': len(dev), 'test': len(test)}
+    # Group medians, quartiles and extrema are historical DEVELOPMENT context.
+    # They are not a personalized cost prediction or bounds on future expenditure.
     summaries = {}
     for label in CLASSES:
         values = dev.loc[dev.tier == label, 'charges']
         summaries[label] = {'n': len(values), 'min': values.min(), 'q25': values.quantile(.25),
                             'median': values.median(), 'q75': values.quantile(.75), 'max': values.max()}
+    # Save the complete reproducibility record, including train/validation IDs
+    # for every fold. EDA uses raw numerical variables rather than confusing them
+    # with the larger encoded feature matrix used for classification.
     result = {'schema_version': SCHEMA_VERSION, 'run_id': run_id, 'source_sha256': source_hash,
         'versions': versions, 'python': platform.python_version(), 'data': audit,
         'class_order': CLASSES, 'raw_schema': {'numeric': NUMERIC, 'categorical': CATEGORIES},
@@ -76,17 +110,27 @@ def main():
                 'numerical_ranges': {c: [dev[c].min(), dev[c].max()] for c in NUMERIC},
                 'category_counts': {c: dev[c].value_counts(dropna=False).to_dict() for c in CATEGORIES},
                 'missing_counts': dev[FEATURES].isna().sum().to_dict()}}
+    # Persist only the predeclared primary pipeline plus its development reference
+    # rows. kneighbors returns positional indices into this exact training order;
+    # keeping the same rows/order is essential for truthful neighbour explanations.
     bundle = {key: result[key] for key in ['schema_version', 'run_id', 'versions', 'thresholds', 'class_order', 'raw_schema']}
     bundle.update({'pipeline': models['k-NN'], 'reference': dev, 'features': FEATURES,
                    'selected_parameters': reports['k-NN']['selected_parameters']})
     for directory in ['models', 'outputs']:
         (ROOT / directory).mkdir(exist_ok=True)
+    # joblib preserves fitted estimators and NumPy arrays. Load only trusted local
+    # artifacts: serialization is not a safe exchange format for untrusted files.
+    # The checksum ties the results to these model bytes, not to an arbitrary model.
     joblib.dump(bundle, ROOT / 'models/model.joblib')
     result['model_sha256'] = hashlib.sha256((ROOT / 'models/model.joblib').read_bytes()).hexdigest()
     predictions['run_id'] = run_id
     predictions['schema_version'] = SCHEMA_VERSION
     predictions.to_csv(ROOT / 'outputs/evaluation_predictions.csv', index=False)
+    # allow_nan=False rejects nonfinite output rather than emitting nonstandard
+    # JSON. Undefined subgroup recall is intentionally stored as null instead.
     (ROOT / 'outputs/results.json').write_text(json.dumps(json_ready(result), indent=2, allow_nan=False) + '\n')
+    # Generate presentation artifacts only after the evaluation files exist.
+    # These functions read saved facts; they do not choose another model.
     from .figures import main as figures
     figures()
     from .flowchart import main as flowchart
@@ -97,5 +141,7 @@ def main():
     print('Selected:', reports['k-NN']['selected_parameters'], 'Run:', run_id)
 
 
+# The module guard runs the analysis for python -m src.main, but prevents
+# training side effects when another module imports json_ready or constants.
 if __name__ == '__main__':
     main()

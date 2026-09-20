@@ -1,3 +1,7 @@
+# HISTORICAL SNAPSHOT: existing educational explanations below are preserved.
+# This module is not imported by the revised analysis. Some original choices
+# are unsuitable for validation; the additional notes identify why.
+# Use src/data.py and src/classify.py for the current implementation.
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -25,6 +29,8 @@ def build_data(path=DATA_PATH):
     reset_index(drop=True):
     Resets row numbers after removing duplicates.
     """
+    # Historical duplicate removal loses the original row mapping. The revised
+    # loader retains source-row IDs before resetting its working DataFrame index.
     data = pd.read_csv(path).drop_duplicates().reset_index(drop=True)
     """
     Count the total number of missing values in the entire dataset.
@@ -34,6 +40,9 @@ def build_data(path=DATA_PATH):
     If missing values exist, separate numerical and categorical columns
     and fill the missing values.
     """
+    # Historical behaviour only: this block can impute charges and learn predictor
+    # imputation from all rows. The revised method drops invalid targets and
+    # learns predictor imputation within each development training fold instead.
     if missing:
         """
         Identify numerical columns such as:
@@ -71,6 +80,9 @@ def build_data(path=DATA_PATH):
     have extremely large costs.
     Log transformation helps make the distribution more balanced.
     """
+    # Log charges were used by the old analysis, not by current neighbour distance.
+    # Zero charges would yield negative infinity here; the revised classifier does
+    # not need this transformation.
     y_log = np.log(y_cost)
     """
     Divide insurance charges into 3 approximately equal groups:
@@ -80,6 +92,8 @@ def build_data(path=DATA_PATH):
     q=3 means divide into 3 quantiles.
     edges stores the actual cutoff values between these groups.
     """
+    # This uses the complete dataset to define tiers, unlike the current frozen
+    # development-only cutoffs. Do not reuse these edges for revised holdout metrics.
     tier, edges = pd.qcut(
         y_cost,
         q=3,
@@ -95,6 +109,8 @@ def build_data(path=DATA_PATH):
     Select the continuous numerical variables
     that will be used for statistical analysis.
     """
+    # Despite this historical variable name, children is a discrete count, not
+    # a continuous measurement. The revised comments and UI make that distinction.
     continuous = ["age", "bmi", "children"]
     """
     Create a StandardScaler.
@@ -152,6 +168,9 @@ def build_data(path=DATA_PATH):
     """
     Create another scaler for the complete feature dataset.
     """
+    # The old scaler standardizes all encoded columns on the full dataset.
+    # Current k-NN instead scales only numerical variables within folds and leaves
+    # full one-hot category indicators unscaled.
     full_scaler = StandardScaler()
     """
     F = Full feature matrix.

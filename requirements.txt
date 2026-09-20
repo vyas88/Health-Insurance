@@ -1,9 +1,20 @@
+# Versions match the environment used for the saved artifacts and verification.
+# Changing core numerical/ML versions requires compatible artifact regeneration.
+# Browser interface, widgets and session state.
 streamlit==1.50.0
+# Pipelines, preprocessing, k-NN, LDA/QDA and evaluation.
 scikit-learn==1.6.1
+# Numerical arrays, finite-value checks and voting calculations.
 numpy==1.25.2
+# Numerical routines used by scikit-learn and retained legacy diagnostics.
 scipy==1.13.1
+# Named tabular records, CSV input/output and descriptive summaries.
 pandas==2.1.4
+# Save and reload fitted development-only model bundles.
 joblib==1.3.2
+# Export evaluation figures and the explanatory flowchart.
 matplotlib==3.7.5
+# Optional interpretation client, invoked only after an explicit button click.
 openai==2.48.0
+# Read optional local environment settings without hardcoding secrets.
 python-dotenv==1.1.0

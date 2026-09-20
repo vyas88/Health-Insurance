@@ -48,3 +48,27 @@ The rubric PDF was unavailable. Acceptance of existing Streamlit hosting in plac
 ## Actual revised results
 
 See [generated results and error analysis](outputs/RESULTS.md) for the current run, selected parameters, exact cutoffs, benchmark table, High errors and k sensitivity. This file is regenerated from results.json by the analysis entry point.
+
+## Reading the code for a viva
+
+The Python files include teaching comments explaining what each stage does, why the
+relevant library functions are used, what the inputs and outputs mean, and which
+statistical or application errors each safeguard prevents. A useful reading order is:
+
+1. `src/data.py`: raw schema, validation, missing values, duplicate audit and target boundaries.
+2. `src/classify.py`: pipelines, encoding, scaling, cross-validation, parameter selection and metrics.
+3. `src/main.py`: the complete offline analysis and artifact-generation sequence.
+4. `src/inference.py`: compatible artifact loading, neighbour retrieval and exact voting.
+5. `app.py` and `src/ai_interpretation.py`: Streamlit reruns, session state, result display and optional AI.
+6. `src/figures.py`, `src/flowchart.py` and `src/report.py`: figures and report generation from saved facts.
+7. `tests/`: the mathematical and application behaviours checked by each test.
+
+The retained legacy helpers have scope notes explaining their historical purpose
+and limitations. Original snapshot explanations remain preserved. New explanations
+use actual `#` comments, avoiding the adjacent-string dictionary-key defect found
+in the earlier Mardia code.
+
+The comment update leaves executable Python syntax trees, fitted artifacts and saved
+metrics unchanged. The saved run identifies its original generation source; since
+the run fingerprint hashes source bytes, a future regeneration after comment edits
+will receive a new run identifier even when the model's numerical results agree.

@@ -1,3 +1,5 @@
+# Explicit light controls keep labels readable against the pale page background.
+# app.py separately styles the navy sidebar; these settings define the base theme.
 [theme]
 base = "light"
 primaryColor = "#1f5d9b"

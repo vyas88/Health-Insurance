@@ -1,7 +1,9 @@
 {
   "name": "Python 3",
   // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  // Use the Python 3.11 Debian development image for a reproducible editor runtime.
   "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+  // Open the project entry files and install Python editing/type-analysis extensions.
   "customizations": {
     "codespaces": {
       "openFiles": [
@@ -17,16 +19,22 @@
       ]
     }
   },
+  // Historical setup command: install optional OS packages, project requirements, then Streamlit.
+  // Semicolons separate stages, so the final echo alone is not proof that every stage succeeded.
   "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+  // Start the app when the remote editor attaches. This existing preview command disables
+  // CORS and XSRF checks; it is preserved here, not a recommendation for public deployment.
   "postAttachCommand": {
     "server": "streamlit run app.py --server.enableCORS false --server.enableXsrfProtection false"
   },
+  // Label Streamlit's port and ask the editor to open a preview when it is forwarded.
   "portsAttributes": {
     "8501": {
       "label": "Application",
       "onAutoForward": "openPreview"
     }
   },
+  // Forward the app port from the container to the development interface.
   "forwardPorts": [
     8501
   ]
