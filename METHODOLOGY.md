@@ -8,7 +8,7 @@ The profile is multivariate because age, BMI, children (a count), sex, smoker an
 
 ## Data and cleaning
 
-Source: Miri Choi, [Medical Cost Personal Datasets](https://www.kaggle.com/datasets/mirichoi0218/insurance), Kaggle. Download the CSV into `data/insurance.csv`. The local CSV remains uncommitted. Its SHA-256 is recorded in `outputs/results.json`.
+Source: Miri Choi, [Medical Cost Personal Datasets](https://www.kaggle.com/datasets/mirichoi0218/insurance), Kaggle. The source CSV is included at `data/insurance.csv` for reproducibility. Its SHA-256 is recorded in `outputs/results.json`.
 
 The supplied file contains 1,338 records, no missing cells and one exact duplicate, leaving 1,337 records. Source-row IDs are original CSV line numbers including the header. Exact matching fields do not establish that two records refer to the same person. The seven-field schema has no person identifier, so repeated-person dependence cannot be ruled out. Unexpected extra fields trigger inspection rather than an unexamined random split; identifiable repeated people would require grouped splitting.
 

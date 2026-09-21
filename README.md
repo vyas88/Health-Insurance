@@ -6,25 +6,36 @@ This university project uses k-nearest neighbours as its primary Unit 4 multivar
 
 ## Data and design
 
-Download [Medical Cost Personal Datasets by Miri Choi](https://www.kaggle.com/datasets/mirichoi0218/insurance) to `data/insurance.csv`. The CSV is local and uncommitted. There are 1,338 source records, 1,337 after one exact duplicate is removed, and no missing values in this supplied version. Matching records do not prove duplicated people.
+The source dataset is [Medical Cost Personal Datasets by Miri Choi](https://www.kaggle.com/datasets/mirichoi0218/insurance). A copy is included at `data/insurance.csv` for reproducibility. There are 1,338 source records, 1,337 after one exact duplicate is removed, and no missing values in this supplied version. Matching records do not prove duplicated people.
+
+The predictors are age, sex, BMI, number of children, smoking status and region. The target is a Low, Medium or High group derived from observed medical charges.
 
 A single random 80/20 split (seed 42) produces 1,069 development and 268 test records. Only development charges define the tercile thresholds. Numerical preprocessing and category encoding fit inside each development CV training fold. k-NN uses 11 encoded dimensions; LDA/QDA use eight with reference-category encoding. Charges never enter predictors. The test set was held out during this refactor, not independent external validation of a previously unexplored dataset.
 
 ## Run locally
 
-Use Python 3.11.11 and the pinned, verified dependencies. From the repository root:
+The saved artifacts were generated with Python 3.11.11 and the pinned dependencies. Clone the repository and start the app:
 
 ```bash
+git clone https://github.com/vyas88/Health-Insurance.git
+cd Health-Insurance
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m src.main
-python -m src.flowchart
-python -m unittest discover -s tests -v
 python -m streamlit run app.py
 ```
 
-`python -m src.main` generates the development-only model, structured results, held-out predictions and two evaluation figures. `python -m src.figures` regenerates those figures from saved predictions without refitting. The app never trains on opening. Missing or incompatible artifacts produce a rebuild instruction.
+Open `http://localhost:8501`. The repository includes the fitted model, results and figures, so retraining is not required to launch the app. Its four pages cover profile assessment, how the model works, results and model comparison, and dataset methodology.
+
+To reproduce the analysis and run the checks, use the activated environment:
+
+```bash
+python -m src.main
+python -m src.flowchart
+python -m unittest discover -s tests -v
+```
+
+`python -m src.main` generates the development-only model, structured results, held-out predictions and two evaluation figures. `python -m src.figures` regenerates those figures from saved predictions without refitting. The app never trains on opening. Missing or incompatible artifacts produce a rebuild instruction. Dependency versions should match `requirements.txt` when loading the saved model.
 
 ## Optional AI interpretation
 
@@ -33,6 +44,7 @@ Copy `.env.example` to `.env` and set `OPENAI_API_KEY`; retain or configure `OPE
 ## Files
 
 - `app.py`: navy/white assessment, model explanation, results and methodology pages.
+- `data/insurance.csv`: source dataset used by the analysis and tests.
 - `src/data.py`, `src/classify.py`, `src/main.py`: validation, fold-fitted selection and frozen evaluation.
 - `src/inference.py`: artifact checks and exact neighbour explanations.
 - `src/ai_interpretation.py`: optional compact explanation contract.
@@ -41,13 +53,24 @@ Copy `.env.example` to `.env` and set `OPENAI_API_KEY`; retain or configure `OPE
 - `src/figures.py`, `src/flowchart.py`: figure and flowchart sources.
 - `METHODOLOGY.md`: equations, pseudo-algorithm, conditions, actual results and limitations.
 - `SUBMISSION_CHECKLIST.md`: provisional rubric evidence map and user-owned pending items.
+- `VERIFICATION.md`, `tests/`: recorded validation and automated workflow/app checks.
 - `legacy/`: previous methodology and preserved local edits, separate from revised evidence.
 
-The rubric PDF was unavailable. Acceptance of existing Streamlit hosting in place of the named Antigravity/GitHub Codespace requirement needs clarification. Public URLs, Developer Pack/tool-use evidence, two LinkedIn posts, a captioned video, three endorsements and a personal reflection with a real peer citation remain user-owned evidence.
+Submission requirements and outstanding external evidence are tracked separately in [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md). Publishing this repository does not establish a live app deployment or completion of those requirements.
 
-## Actual revised results
+## Saved evaluation results
 
-See [generated results and error analysis](outputs/RESULTS.md) for the current run, selected parameters, exact cutoffs, benchmark table, High errors and k sensitivity. This file is regenerated from results.json by the analysis entry point.
+The selected k-NN model uses 21 neighbours, Euclidean distance and distance-weighted voting. On the 268 held-out records:
+
+| Model | Accuracy | Balanced accuracy | Macro F1 | High-group recall |
+|---|---:|---:|---:|---:|
+| k-NN | 85.82% | 86.04% | 0.8585 | 75.27% |
+| LDA | 83.58% | 83.99% | 0.8350 | 64.52% |
+| Regularized QDA | 82.84% | 83.23% | 0.8280 | 64.52% |
+
+k-NN misses 23 High-group records, assigning five to Low and 18 to Medium. Recall for High-cost non-smokers is only 33.3% across 33 records. These limitations matter despite the overall accuracy, and one split does not establish statistical superiority.
+
+See [generated results and error analysis](outputs/RESULTS.md) for the run identifier, exact cutoffs and k sensitivity, and [METHODOLOGY.md](METHODOLOGY.md) for the design and limitations. The analysis entry point regenerates the results report from `outputs/results.json`.
 
 ## Reading the code for a viva
 
@@ -64,11 +87,8 @@ statistical or application errors each safeguard prevents. A useful reading orde
 7. `tests/`: the mathematical and application behaviours checked by each test.
 
 The retained legacy helpers have scope notes explaining their historical purpose
-and limitations. Original snapshot explanations remain preserved. New explanations
-use actual `#` comments, avoiding the adjacent-string dictionary-key defect found
-in the earlier Mardia code.
+and limitations. Their outputs are separate from the current k-NN evaluation.
 
-The comment update leaves executable Python syntax trees, fitted artifacts and saved
-metrics unchanged. The saved run identifies its original generation source; since
-the run fingerprint hashes source bytes, a future regeneration after comment edits
-will receive a new run identifier even when the model's numerical results agree.
+Local credentials (`.env` and `.streamlit/secrets.toml`), the virtual environment and
+Python caches are excluded from Git. The source data, fitted model and generated
+analysis outputs are included.
