@@ -167,6 +167,19 @@ def show_assessment(bundle, results):
     st.write(f"k={assessment['k']}; {assessment['weights']} voting. Support is not calibrated confidence. Even 100% means unanimous or fully weighted neighbour support, not proof of correctness.")
     if assessment['outside_training_range']:
         st.warning('Outside development-data range: ' + ', '.join(assessment['outside_training_range']) + '. Similarity is less established for this unfamiliar profile.')
+    # Use the frozen development-group median, without fitting a new cost model.
+    costs = results['historical_development_costs'][assessment['tier']]
+    st.subheader('Estimated annual medical cost')
+    estimate, cost_range = st.columns(2)
+    estimate.metric('Group-based estimate (USD/year)', f"${costs['median']:,.2f}")
+    cost_range.metric('Observed group range (USD/year)', f"${costs['min']:,.2f} to ${costs['max']:,.2f}")
+    st.write('How it is calculated: first, k-NN assigns the profile to a cost group. '
+             'Then the estimate is the median of the historical annual charges in that group, using development records only.')
+    st.latex(r'\text{Estimated annual cost} = \operatorname{median}\{\text{charges in the predicted group}\}')
+    st.caption(f"For this {assessment['tier']} group, sort the charges of {costs['n']} development records and take the middle value "
+               '(or the average of the two middle values). The range is the smallest to largest observed charge in that group. '
+               'People assigned to the same group receive the same estimate. This is historical cost context, not an insurance premium quote '
+               'or a validated forecast; the range is not a prediction interval.')
     # Show the rule that defines the group separately from its observed sample
     # summary. A sample maximum is not an upper bound for this applicant's costs.
     with st.expander('Historical cost context and fixed group definition', expanded=True):

@@ -27,6 +27,8 @@ python -m streamlit run app.py
 
 Open `http://localhost:8501`. The repository includes the fitted model, results and figures, so retraining is not required to launch the app. Its four pages cover profile assessment, how the model works, results and model comparison, and dataset methodology.
 
+The assessment also displays a group-based annual medical-cost estimate in USD: the median observed charge among development records in the predicted group. The historical minimum-to-maximum range and a simple calculation explanation appear alongside it. This estimate is shared by profiles in the same group; it is not an insurance premium quote, a validated cost forecast or a prediction interval.
+
 To reproduce the analysis and run the checks, use the activated environment:
 
 ```bash

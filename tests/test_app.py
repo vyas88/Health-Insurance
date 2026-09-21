@@ -37,7 +37,11 @@ class AppTests(unittest.TestCase):
             self.assertFalse(app.exception)
             app.button[0].click().run()
             self.assertFalse(app.exception)
-            self.assertEqual(len(app.metric),3)
+            self.assertEqual(len(app.metric),5)
+            self.assertEqual(app.metric[3].label, 'Group-based estimate (USD/year)')
+            self.assertEqual(app.metric[3].value, '$3,388.88')
+            self.assertEqual(app.metric[4].value, '$1,121.87 to $6,238.30')
+            self.assertTrue(app.latex)
             app.button[1].click().run()
             self.assertTrue(app.info)
             # Editing a field must immediately hide the previous cards even before
