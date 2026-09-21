@@ -1,0 +1,2 @@
+# Preserve the source CSV bytes to match the saved analysis checksum.
+data/insurance.csv -text -diff
