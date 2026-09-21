@@ -74,23 +74,6 @@ k-NN misses 23 High-group records, assigning five to Low and 18 to Medium. Recal
 
 See [generated results and error analysis](outputs/RESULTS.md) for the run identifier, exact cutoffs and k sensitivity, and [METHODOLOGY.md](METHODOLOGY.md) for the design and limitations. The analysis entry point regenerates the results report from `outputs/results.json`.
 
-## Reading the code for a viva
-
-The Python files include teaching comments explaining what each stage does, why the
-relevant library functions are used, what the inputs and outputs mean, and which
-statistical or application errors each safeguard prevents. A useful reading order is:
-
-1. `src/data.py`: raw schema, validation, missing values, duplicate audit and target boundaries.
-2. `src/classify.py`: pipelines, encoding, scaling, cross-validation, parameter selection and metrics.
-3. `src/main.py`: the complete offline analysis and artifact-generation sequence.
-4. `src/inference.py`: compatible artifact loading, neighbour retrieval and exact voting.
-5. `app.py` and `src/ai_interpretation.py`: Streamlit reruns, session state, result display and optional AI.
-6. `src/figures.py`, `src/flowchart.py` and `src/report.py`: figures and report generation from saved facts.
-7. `tests/`: the mathematical and application behaviours checked by each test.
-
-The retained legacy helpers have scope notes explaining their historical purpose
-and limitations. Their outputs are separate from the current k-NN evaluation.
-
 Local credentials (`.env` and `.streamlit/secrets.toml`), the virtual environment and
 Python caches are excluded from Git. The source data, fitted model and generated
 analysis outputs are included.
